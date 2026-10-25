@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.workflow.mapper.BizPurchaseOrderMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.ruoyi.workflow.domain.BizPurchaseOrder">
+        <id column="id" property="id"/>
+        <result column="order_no" property="orderNo"/>
+        <result column="supplier_id" property="supplierId"/>
+        <result column="total_amount" property="totalAmount"/>
+        <result column="status" property="status"/>
+        <result column="process_instance_id" property="processInstanceId"/>
+        <result column="create_by" property="createBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_by" property="updateBy"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="del_flag" property="delFlag"/>
+    </resultMap>
+
+    <!-- 1. 按年月统计总数 (采用范围查询防索引失效 + 忽略软删除) -->
+    <select id="countByYearMonth" resultType="int">
+        SELECT COUNT(1)
+        FROM biz_purchase_order
+        WHERE del_flag = '0'
+        <!-- 假设传入的 yearMonth 格式为 '2024-10' -->
+        AND create_time &gt;= CONCAT(#{yearMonth}, '-01 00:00:00')
+        AND create_time &lt; DATE_ADD(CONCAT(#{yearMonth}, '-01 00:00:00'), INTERVAL 1 MONTH)
+    </select>
+
+    <!-- 2. 按年月多线程分页查询 (通过 ID 排序保证多线程分页的顺序确定性) -->
+    <select id="selectPageByYearMonth" resultMap="BaseResultMap">
+        SELECT id, order_no, supplier_id, total_amount, status,
+        process_instance_id, create_by, create_time
+        FROM biz_purchase_order
+        WHERE del_flag = '0'
+        AND create_time &gt;= CONCAT(#{yearMonth}, '-01 00:00:00')
+        AND create_time &lt; DATE_ADD(CONCAT(#{yearMonth}, '-01 00:00:00'), INTERVAL 1 MONTH)
+        ORDER BY id ASC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+</mapper>
